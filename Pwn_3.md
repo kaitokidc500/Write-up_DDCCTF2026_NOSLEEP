@@ -482,7 +482,7 @@ poisoning lần 2      → malloc trả về 0x404010
 SEARCH cat /flag.txt → system("cat /flag.txt") → flag
 ```
 
-## 11. Remote đến server để lấy flag thì thấy bản libc khác 
+## 10. Remote đến server để lấy flag thì thấy bản libc khác 
 
 
 
