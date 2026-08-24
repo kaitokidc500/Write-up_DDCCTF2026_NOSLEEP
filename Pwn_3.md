@@ -6,7 +6,7 @@
 
 ---
 
-## 1. Recon
+## 1. Kiểm tra 
 
 Challenge phát `corrupt-vector-db-dist.tar.gz`, giải nén ra 3 file:
 
