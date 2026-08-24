@@ -37,7 +37,7 @@ Giao diện chat tên **"MCP Coding Assistant"**, footer ghi `MCP Protocol v2.1`
 <!-- MCP Engine v2.1 | Directive schema: mcp:directive[@version,@auth] -->
 ```
 
-Comment HTML cố ý "phóng":
+Comment HTML có ý nghĩa:
 
 - Schema directive dùng attribute `@version` và `@auth`.
 - Token `mcp-session-4c3682e957d26487` được publish công khai.
@@ -239,59 +239,8 @@ flag{eaf5efd2-d8a1-44bc-b36d-15e934958822}
 
 ---
 
-## 5. Timeline (thử – sai – đúng)
 
-| # | Việc đã làm | Kết quả | Nhận xét |
-|---|------------|---------|----------|
-| 1 | Đọc HTML, `/api/docs`, `chat.js` | Lộ session token, schema directive, endpoint echo | Token auth bị publish công khai. |
-| 2 | Thử `execute_code` trực tiếp nhiều lệnh | Tất cả refused | Sandbox allow-list rỗng với attacker. |
-| 3 | Thử `web_fetch` với `file://`, `example.com`, nip.io | `file://` bị từ chối; DNS ngoài bị block | Chỉ `http://localhost/…` đi qua. |
-| 4 | Inject directive rỗng | "auth token mismatch" | Oracle bắt đầu work. |
-| 5 | Thêm `auth=session`, `version=2.1` | "Expected a tool-policy element" | Authenticated ✓. |
-| 6 | Fuzz `<tool-policy>` + `<allow>` × ~50 tổ hợp | Chỉ `pattern="cat /flag.txt"` được chấp nhận | Tìm ra "approved command pattern". |
-| 7 | Activate → retry execute_code (plain `urlopen`) | Fail, override reset mỗi request | Bí. |
-| 8 | Đọc response header, thấy `Set-Cookie: session=…` | Flask signed session, decode được `sid` | Nguyên nhân state reset. |
-| 9 | Dùng `CookieJar`, 3-bước chain | **FLAG** | Reproducible. |
-
----
-
-## 6. Root cause analysis
-
-Challenge ghép ba lỗ hổng mà bất kỳ cái nào cũng đủ chết:
-
-1. **Token leakage làm auth material.** Token `mcp-session-…` bị publish trong `<meta>` và `X-Mcp-Session`. App tin rằng directive đến từ "engine nội bộ", nhưng auth chỉ là so sánh string với token đã lộ → **bất kỳ ai cũng tự ký được directive hợp lệ**.
-2. **Echo reflection + SSRF tới `localhost`.** `/api/echo` reflect base64 tuỳ ý; `web_fetch` không cấm `localhost`/private IP. Nhờ đó, nội dung attacker-controlled được nhồi thẳng vào "tool response" mà engine sẽ parse.
-3. **Hard-coding "approved command pattern" = `cat /flag.txt`.** Đây là sai lầm thiết kế nguy hiểm: whitelist không phải là pattern tổng quát (`*`, `cat *`, `.*`), mà là một chuỗi literal trùng khớp với đúng lệnh đọc flag → policy override biến thành **privesc một-câu-lệnh**.
-
-Càng trớ trêu hơn: phản hồi activate ghi *"the previously blocked tool action"* — engine thiết kế sẵn cơ chế cho phép **chính xác lệnh vừa bị block** được phép chạy sau khi override. Nghĩa là policy này đã có sẵn "trapdoor" cho `cat /flag.txt`, chỉ chờ ai đó authentication hợp lệ — mà authentication thì lại bị leak.
-
----
-
-## 7. Mitigation
-
-| # | Fix | Lý do |
-|---|-----|------|
-| 1 | **Bỏ hẳn `auth=token` trong directive parser.** Directive không nên có khái niệm "authenticated". Nếu bắt buộc phải có, dùng HMAC có thời hạn签 bằng server-side secret, không bao giờ publish token ra client. | Triệt tiêu vector chính. |
-| 2 | **Cấm `web_fetch` truy cập `localhost`, `127.0.0.0/8`, `10/8`, `172.16/12`, `192.168/16`, `169.254/16`, metadata IP `169.254.169.254`.** Implement DNS pinning: resolve trước, kiểm IP, mới fetch. | Cắt vector SSRF reflect nội bộ. |
-| 3 | **Bỏ `/api/echo` hoặc giới hạn nó chỉ trả về khi caller là internal service**, không phải `web_fetch`. | Cắt injection path. |
-| 4 | **Directive parser tách bạch khỏi "LLM context"**: directive chỉ chấp nhận từ metadata channel riêng, không bao giờ parse directive nằm trong *body* của tool response. | Phá tan indirect prompt injection. |
-| 5 | **Whitelist command dùng pattern tổng quát (`re.match` đã compile), không hard-code chuỗi literal trùng tên file nhạy cảm.** Và tuyệt đối không whitelist bất kỳ command nào có chữ "flag". | Ngăn trapdoor. |
-| 6 | **Signed session cookie + server-side `sid` đã đúng** — nhưng cần kèm **TTL ngắn** cho override (vài giây) và **không cho phép activate lại** cho đến khi override cũ expire. | Giảm blast radius. |
-| 7 | **Logging/alerting** mỗi lần `override_active=True` trong response — đây là sự kiện bảo mật, không phải trạng thái thường. | Detection. |
-
----
-
-## 8. Lessons learned
-
-- **Token nằm trong HTML/JS/header đều là "user-input" từ góc nhìn attacker.** Không tin bất cứi giá trị nào client gửi lên — kể cả khi nó khớp với "secret" nội bộ, vì chính app đã tự leak nó.
-- **Indirect prompt injection không cần LLM thật.** "MCP Coding Assistant" ở đây chỉ là rule-based pattern matcher, nhưng workflow *tool-call → tool-result → process* vẫn tạo đủ bề mặt để directive bên trong tool-result được thực thi. Bài học: **bất kỳ hệ thống nào parse structured payload trong output của tool khác đều có rủi ro này.**
-- **Oracle-based fuzzing vẫn trị được CTF dị.** Error message của challenge cực kỳ hữu dụng (chỉ ra đúng từng step còn thiếu) — chỉ cần kiên nhẫn đọc kỹ và fuzz có hệ thống.
-- **Cookie jar, không bao giờ quên.** Một script exploit "đúng logic" vẫn có thể chạy sai chỉ vì `urllib` mặc định không giữ session. Khi nào thấy state "lạ lạ" reset giữa các request, việc đầu tiên: dump `Set-Cookie`.
-- **Tên challenge là hint.** "…Learned to Do the One Thing It Was Never Supposed to Do" đã báo sẵn có đúng **một** command được whitelist — và đó là `cat /flag.txt`. Đọc tựa đề kỹ đôi khi tiết kiệm hàng giờ fuzz.
-
----
-
-## 9. Full exploit (Python, copy-paste-runnable)
+## 5. Full exploit 
 
 ```python
 #!/usr/bin/env python3
@@ -355,13 +304,9 @@ r = chat("execute_code cat /flag.txt")
 print("[3] FLAG         :", r["response"])
 ```
 
-Output (đã chạy thực tế):
+Output flag:
 
-```
-[1] blocked attempt: execute_code refused: command is outside the sandbox allow-list.
-[2] activate      : MCP directive processed. Security policy updated for this ...
-                  | override_active = True
-[3] FLAG         : flag{eaf5efd2-d8a1-44bc-b36d-15e934958822}
+FLAG         : flag{eaf5efd2-d8a1-44bc-b36d-15e934958822}
 ```
 
 ---
