@@ -28,11 +28,12 @@ Chạy thử bằng loader đi kèm:
 ./ld-linux-x86-64.so.2 --library-path . ./vectorstore
 ```
 
-![alt text](image.png)
+<img width="1472" height="241" alt="Screenshot 2026-08-24 193953" src="https://github.com/user-attachments/assets/f7aeb865-51bc-41de-a1d4-9abbf1692e0d" />
+
 
 
 ## 2. kiemtra file 
-![alt text](image-1.png)
+<img width="1026" height="207" alt="Screenshot 2026-08-24 194210" src="https://github.com/user-attachments/assets/5456ec95-5891-4169-b829-ba4dcb04ba48" />
 
 | Mitigation | Trạng thái | Bằng chứng |
 |---|---|---|
@@ -49,7 +50,10 @@ Hai hệ quả quan trọng nhất định hướng toàn bộ exploit:
 
 Nên ta đi từ Strings (IDA) -> xref chuỗi `"UPLOAD"`/`"QUERY"`/`"SEARCH"` về hàm main để tìm luồng xử lý .(vì stript nên các hàm thành dạng sub -> khó tìm luồng )
 
-![alt text](image-2.png)
+<img width="642" height="497" alt="Screenshot 2026-08-24 195345" src="https://github.com/user-attachments/assets/8520a292-40dc-47f6-94d8-a04beb1cad01" />
+
+<img width="1351" height="482" alt="Screenshot 2026-08-24 200031" src="https://github.com/user-attachments/assets/3097dcf0-530f-486a-9d65-74f6788e83f3" />
+
 ## 3. Reverse cấu trúc vector slot
 
 Sau khi đi từ string `"UPLOAD"` bằng `Ctrl + X`, ta nhảy được vào hàm xử lý command chính. Trong nhánh `UPLOAD`, chương trình nhận các thông tin như `id`, `dims`, `name`, `format`, sau đó lưu metadata của vector vào một bảng global.
@@ -63,20 +67,14 @@ Global table nằm tại địa chỉ:
 Có thể thấy địa chỉ này ở đoạn load global table:
 
 
-![alt text](image-4.png)
+<img width="253" height="155" alt="Screenshot 2026-08-24 204410" src="https://github.com/user-attachments/assets/713837a3-c746-450d-9a82-694678d90ec8" />
+
 
 
 Tiếp tục lần theo nhánh `UPLOAD`, ta gặp block `loc_401624`. Trong block này có đoạn quan trọng dùng để tính địa chỉ slot và ghi metadata:
 
-![alt text](image-3.png)
+<img width="502" height="377" alt="Screenshot 2026-08-24 201235" src="https://github.com/user-attachments/assets/a91292b8-6449-4a62-bc86-29481b1a7c3f" />
 
-Trong writeup có thể ghi đoạn này là đoạn tại `0x401637`, vì instruction quan trọng:
-
-```asm
-imul    rax, 38h
-```
-
-nằm bên trong block `loc_401624` và tương ứng với địa chỉ khoảng `0x401637` khi IDA bật line prefix.
 
 Lệnh quan trọng nhất là:
 
@@ -160,7 +158,8 @@ struct vector_slot {
 Ngoài ra, trong nhánh `DELETE`, chương trình lấy `slot[id].data` rồi gọi `free`:
 
 
-![alt text](image-5.png)
+<img width="578" height="530" alt="Screenshot 2026-08-24 205011" src="https://github.com/user-attachments/assets/29a710a9-f653-4524-90e5-9248d8e5d6f8" />
+
 
 
 Logic tương đương:
@@ -184,8 +183,6 @@ Data format (0=text, 1=binary):
 
 Nếu chọn mode binary, chương trình sẽ cấp phát buffer theo số chiều `dims` của vector.
 
-![alt text](image-6.png)
-
 
 
 Trên Linux amd64, tham số thứ nhất của hàm được truyền qua `rdi`/`edi`, nên đoạn trên tương đương:
@@ -208,7 +205,8 @@ thì chương trình chỉ cấp phát:
 
 Sau đó, ở binary mode, chương trình hỏi tiếp `Byte count:` rồi đọc giá trị này bằng `scanf`.
 
-![alt text](image-7.png)
+<img width="305" height="207" alt="Screenshot 2026-08-24 205730" src="https://github.com/user-attachments/assets/ff9ae98a-77a2-4c37-8196-79c1358920c1" />
+
 
 ```asm
 loc_401A19:
@@ -247,7 +245,8 @@ byte_count <= dims * 4
 
 Sau khi đọc `byte_count`, chương trình dùng chính giá trị này làm size cho `read`.
 
-![alt text](image-8.png)
+<img width="277" height="61" alt="Screenshot 2026-08-24 205639" src="https://github.com/user-attachments/assets/8a22b6c3-16dd-419e-b7e7-7d12c6ca67ea" />
+
 
 ```asm
 mov     rax, [rsp+1098h+ptr]       ; heap buffer
@@ -299,7 +298,7 @@ Tức là chỉ cấp phát `0x20` byte nhưng lại đọc `0x60` byte vào cù
 
 `QUERY` nhận `ID / Offset / Count`. Trong nhánh này, chương trình chỉ kiểm tra `count <= 0x100`:
 
-![alt text](image-9.png)
+<img width="297" height="125" alt="Screenshot 2026-08-24 210704" src="https://github.com/user-attachments/assets/abc03838-6f87-43d9-8703-5df995255c4d" />
 
 ```asm
 mov     eax, [rsp+1098h+var_106C] ; count
@@ -315,7 +314,8 @@ offset + count <= slot[id].dims
 
 Sau đó chương trình dùng offset/index để cộng thẳng vào `slot[id].data`:
 
-![alt text](image-10.png)
+<img width="417" height="293" alt="Screenshot 2026-08-24 210742" src="https://github.com/user-attachments/assets/65b1eeaa-35f2-42d9-a2f1-40dfc6ae07be" />
+
 
 ```asm
 mov     rax, [rdi+rax+8]          ; rax = slot[id].data
@@ -372,13 +372,19 @@ B->next = NULL ^ (B >> 12)
 ```
 
 Kiểm chứng bằng GDB:
+<img width="975" height="440" alt="image" src="https://github.com/user-attachments/assets/25f31e93-2f16-4934-aaa9-40b88680e22b" />
 
-![alt text](image-12.png)
-
-![alt text](image-13.png)
+<img width="721" height="703" alt="image" src="https://github.com/user-attachments/assets/30888e0c-5b75-42f8-9ec4-54dd5616400a" />
 
 
-![alt text](image-14.png)
+-> sau khi delete B free() chạy sẽ dừng ở 4019AB call _free
+<img width="975" height="458" alt="image" src="https://github.com/user-attachments/assets/fb8c0c53-50ca-4e84-beec-f192166aba53" />
+
+
+-> ni đến kết quả
+<img width="975" height="195" alt="image" src="https://github.com/user-attachments/assets/dd80a750-8d71-4980-89cd-3e39281fc640" />
+
+
 Có thể thấy qword đầu của chunk B sau khi `free` là:
 
 ```text
@@ -476,7 +482,7 @@ poisoning lần 2      → malloc trả về 0x404010
 SEARCH cat /flag.txt → system("cat /flag.txt") → flag
 ```
 
-## 11. Twist trên remote — server chạy libc khác bản kèm theo
+## 11. Remote đến server để lấy flag thì thấy bản libc khác 
 
 
 
