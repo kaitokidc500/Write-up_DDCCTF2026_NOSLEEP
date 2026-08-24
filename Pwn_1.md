@@ -5,26 +5,15 @@
 Bài `punchcard` là một bài pwn dạng **ret2win** cơ bản. Chương trình có sẵn hàm `win()`, nhiệm vụ của ta là tìm lỗi tràn bộ đệm để ghi đè saved return address và chuyển luồng thực thi về `win()`.
 
 
-Kiểm tra binary:
+Kiểm tra file và chạy thử 
 
-```bash
-file punchcard
-nm -n punchcard | grep win
-```
+<img width="1172" height="497" alt="image" src="https://github.com/user-attachments/assets/4e2d7c11-0d58-42ea-80fb-8ea54ddcd100" />
 
-Kết quả quan trọng:
 
-```text
-080491d6 T win
-```
+-> kết quả Binary là ELF 32-bit, không strip và có symbol rõ. Ngoài ra khi chạy, chương trình còn in trực tiếp địa chỉ hàm `win()` ra màn hình:
 
-Binary là ELF 32-bit, không strip và có symbol rõ. Ngoài ra khi chạy, chương trình còn in trực tiếp địa chỉ hàm `win()` ra màn hình:
 
-```text
-[DEBUG] win() function loaded at: 0x080491d6
-```
-
-Vì vậy hướng khai thác hợp lý là:
+Tư duy  hướng khai thác hợp lý là:
 
 ```text
 buffer overflow -> overwrite return address -> ret2win
@@ -36,7 +25,8 @@ buffer overflow -> overwrite return address -> ret2win
 
 Trong IDA, hàm `main()` in banner, in địa chỉ hàm `win()`, sau đó gọi `process_punchcard()`.
 
-![Hàm main in địa chỉ win và gọi process_punchcard](images/main_win.png)
+<img width="752" height="573" alt="image" src="https://github.com/user-attachments/assets/6fa42320-4409-4f18-b3e4-49c7b51f1511" />
+
 
 Đoạn quan trọng trong `main`:
 
@@ -45,7 +35,7 @@ printf("[DEBUG] win() function loaded at: %p\n", win);
 process_punchcard(&argc);
 ```
 
-Ý nghĩa:
+Cụ thể:
 
 - `win()` đã có sẵn trong binary.
 - Địa chỉ `win()` là cố định: `0x080491d6`.
@@ -57,7 +47,8 @@ process_punchcard(&argc);
 
 Trong IDA, hàm `process_punchcard()` có buffer local tên `s`:
 
-![Hàm process_punchcard dùng gets](images/process_punchcard_gets.png)
+<img width="771" height="401" alt="image" src="https://github.com/user-attachments/assets/61ec5095-af4e-4a48-8c4e-2e397f644879" />
+
 
 Đoạn code quan trọng:
 
@@ -171,3 +162,4 @@ p.sendlineafter(b"CARD> ", payload)
 p.interactive()
 ```
 
+Kết quả exploit:  flag{6aaec008-6443-43b2-ac16-6bace2b03269}
