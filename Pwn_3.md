@@ -151,7 +151,8 @@ struct vector_slot {
 Ngoài ra, trong nhánh `DELETE`, chương trình lấy `slot[id].data` rồi gọi `free`:
 
 
-<img width="1024" height="939" alt="image" src="https://github.com/user-attachments/assets/bc1e3257-491a-42a9-ad55-508cd84dd12b" />
+<img width="912" height="877" alt="image" src="https://github.com/user-attachments/assets/9beab920-2135-4844-bc2b-f248ef0f8eda" />
+
 
 
 
