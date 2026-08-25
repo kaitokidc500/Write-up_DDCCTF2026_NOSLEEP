@@ -55,12 +55,12 @@ Trong IDA, hàm `process_punchcard()` có buffer local tên `s`:
 ```c
 int process_punchcard()
 {
-    char s[68];
+    char s[68];  -> khai báo 68 byte nè
 
     printf(" CARD> ");
     fflush(stdout);
 
-    gets(s);
+    gets(s);  -> ko check byte đầu vào  nè  ( > 68byte là đi ) 
 
     printf(" READING CARD: [%.40s", s);
     ...
