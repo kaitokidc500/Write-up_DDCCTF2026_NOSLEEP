@@ -49,7 +49,7 @@ Nên ta đi từ Strings (IDA) -> xref chuỗi `"UPLOAD"`/`"QUERY"`/`"SEARCH"` v
 
 ## 3. Reverse cấu trúc vector slot
 
-Sau khi đi từ string `"UPLOAD"` bằng `Ctrl + X`, ta nhảy được vào hàm xử lý command chính. Trong nhánh `UPLOAD`, chương trình nhận các thông tin như `id`, `dims`, `name`, `format`, sau đó lưu metadata của vector vào một bảng global.
+Sau khi đi từ string `"UPLOAD"` , ta nhảy được vào hàm xử lý command chính. Trong nhánh `UPLOAD`, chương trình nhận các thông tin như `id`, `dims`, `name`, `format`, sau đó lưu metadata của vector vào một bảng global.
 
 Global table nằm tại địa chỉ:
 
