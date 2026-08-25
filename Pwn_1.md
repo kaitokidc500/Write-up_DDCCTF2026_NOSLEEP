@@ -73,13 +73,13 @@ Bug nằm ở dòng:
 gets(s);
 ```
 
-`gets()` là hàm nguy hiểm vì nó đọc input cho tới khi gặp newline và **không kiểm tra độ dài**. Trong khi đó buffer `s` nằm trên stack, nên nếu nhập chuỗi dài hơn kích thước buffer, dữ liệu sẽ ghi tràn qua saved EBP và saved return address.
+`gets()`  ở đây là hàm  đọc input cho tới khi gặp newline và nó  **không kiểm tra độ dài** !! .nên nếu ta nhập vào biến s >=68 byte thì sẽ bị tràn các địa chỉ các trên stack 
 
-=> Đây là lỗi **stack buffer overflow**.
+=> Đây là lỗi **stack buffer overflow** 
 
 ---
 
-## 4. Tính offset tới return address
+## 4. Tính offset tới return address để viết payload
 
 IDA cho biết buffer `s` nằm tại:
 
