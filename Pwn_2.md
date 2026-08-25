@@ -12,6 +12,9 @@ Kết quả cho thấy đây là file ELF 64-bit, chạy trên Linux. Binary b�
 
 ## - Chạy thử chương trình
 
+<img width="812" height="587" alt="image" src="https://github.com/user-attachments/assets/41eab3de-ba5b-4425-a1cf-176fb20e5cbd" />
+
+
 <img width="975" height="221" alt="image" src="https://github.com/user-attachments/assets/1cdf96c3-35fa-4e8c-90c1-4a914ef23988" />
 
 Chương trình nhận các lệnh: `load JSON | del KEY | sample HEXWORDS | symbols | run | reset | quit`
@@ -19,6 +22,10 @@ Chương trình nhận các lệnh: `load JSON | del KEY | sample HEXWORDS | sym
 (Ở đây hàm quan trọng là `launch_shell()`. Hàm này sẽ gọi shell nếu tham số truyền vào bắt đầu bằng chuỗi `/bin/sh`.)
 
 -> Vậy mục tiêu của ta là làm sao để chương trình gọi được: `launch_shell("/bin/sh");`
+
+
+** khi với các dạng bài này (làm nhiều )sẽ nhạy là ta sẽ thấy được ta thử load key "a" nhưng khi xóa ; chạy run mà x vẫn còn( hiện runtime ->x ) thì chắc chắn đây là UAF ; rồi ta sẽ tìm cách ghi đè là được 
+<img width="848" height="292" alt="image" src="https://github.com/user-attachments/assets/e2b003b9-60d2-4a4d-9876-da4c4e1778af" />
 
 ## - Xem struct trong file cpp
 
@@ -60,6 +67,12 @@ Ta check chỗ hàm cmd_run và infer_value thấy
 - Khi `del a`, object cũ được đưa vào `g_free_values`
 - Sau đó nếu gọi `sample`, chương trình sẽ cấp phát lại đúng chunk vừa bị free
 - `sample` cho ta ghi 8 qword, nên ta có thể fake toàn bộ struct `JsonValue`
+
+## - check xem chỗ lệnh sample cho đọc bao nhiêu số để biết còn ghi đè 
+<img width="851" height="370" alt="image" src="https://github.com/user-attachments/assets/2a830859-89b0-45e0-b65c-2cea08216792" />
+- thấy được lệnh sample đọc 8 số hex :  word[0] word[1] word[2] word[3] word[4] word[5] word[6] word[7]
+- Mỗi word là 8 byte nen6n sample cho ghi object giả là 8x8 =64 byte = đúng cá JsonValue 
+
 
 ## - Hướng exploit
 
