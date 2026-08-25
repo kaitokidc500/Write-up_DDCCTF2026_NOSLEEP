@@ -35,18 +35,11 @@ Chạy thử bằng loader đi kèm:
 ## 2. kiemtra file 
 <img width="1026" height="207" alt="Screenshot 2026-08-24 194210" src="https://github.com/user-attachments/assets/5456ec95-5891-4169-b829-ba4dcb04ba48" />
 
-| Mitigation | Trạng thái | Bằng chứng |
-|---|---|---|
-| PIE | **No PIE** | `readelf -h` → `Type: EXEC`, mọi địa chỉ cố định |
-| NX | **Enabled** | `GNU_STACK` flags `RW` (không có `E`) |
-| RELRO | **Full RELRO** | `GNU_RELRO 0x403d58 + 0x2a8` + `FLAGS: BIND_NOW` |
-| Canary | **Yes** | import `__stack_chk_fail` |
-| Strip | **Yes** | không có symbol table |
 
-Hai hệ quả quan trọng nhất định hướng toàn bộ exploit:
+Cái này làm nhiều sẽ nhìn ra hướng exploit , vì cơ chế bảo vệ khá chặt chẽ nên ta đánh vào "No Pie" 
 
-1. **Full RELRO**  tức toàn bộ GOT read-only sau khi load → **không thể overwrite GOT**.
-2. **No PIE** → `.data`/`.bss` có địa chỉ cố định, đặc biệt mọi thứ **từ `0x404010` trở đi nằm ngoài vùng RELRO và ghi được**. Đây chính là mấu chốt của bài.
+
+ **No PIE** → `.data`/`.bss` có địa chỉ cố định, đặc biệt mọi thứ **từ `0x404010` trở đi nằm ngoài vùng RELRO và ghi được**. Đây chính là mấu chốt của bài.
 
 Nên ta đi từ Strings (IDA) -> xref chuỗi `"UPLOAD"`/`"QUERY"`/`"SEARCH"` về hàm main để tìm luồng xử lý .(vì stript nên các hàm thành dạng sub -> khó tìm luồng )
 
@@ -76,7 +69,7 @@ Tiếp tục lần theo nhánh `UPLOAD`, ta gặp block `loc_401624`. Trong bloc
 <img width="502" height="377" alt="Screenshot 2026-08-24 201235" src="https://github.com/user-attachments/assets/a91292b8-6449-4a62-bc86-29481b1a7c3f" />
 
 
-Lệnh quan trọng nhất là:
+Ta focus vào lệnh
 
 ```asm
 imul    rax, 38h
@@ -158,7 +151,8 @@ struct vector_slot {
 Ngoài ra, trong nhánh `DELETE`, chương trình lấy `slot[id].data` rồi gọi `free`:
 
 
-<img width="578" height="530" alt="Screenshot 2026-08-24 205011" src="https://github.com/user-attachments/assets/29a710a9-f653-4524-90e5-9248d8e5d6f8" />
+<img width="1024" height="939" alt="image" src="https://github.com/user-attachments/assets/bc1e3257-491a-42a9-ad55-508cd84dd12b" />
+
 
 
 
@@ -186,9 +180,11 @@ Nếu chọn mode binary, chương trình sẽ cấp phát buffer theo số chi�
 
 
 Trên Linux amd64, tham số thứ nhất của hàm được truyền qua `rdi`/`edi`, nên đoạn trên tương đương:
+<img width="347" height="227" alt="image" src="https://github.com/user-attachments/assets/5a99de6f-fbf8-4b55-92db-14d4f39108aa" />
+
 
 ```c
-buf = malloc(dims * 4);
+*note -> buf = malloc(dims * 4);
 ```
 
 Ví dụ nếu nhập:
