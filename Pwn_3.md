@@ -32,7 +32,7 @@ Chạy thử bằng loader đi kèm:
 
 
 
-## 2. kiemtra file 
+## 2. Checksec (ktra các cơ chế bảo vệ) 
 <img width="1026" height="207" alt="Screenshot 2026-08-24 194210" src="https://github.com/user-attachments/assets/5456ec95-5891-4169-b829-ba4dcb04ba48" />
 
 
